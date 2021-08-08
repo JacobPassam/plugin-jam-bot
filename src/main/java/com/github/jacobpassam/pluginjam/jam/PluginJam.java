@@ -38,11 +38,11 @@ public class PluginJam {
 
     private final Map<VoteCategory, Set<UserVote>> currentEntryVotes;
 
-    public PluginJam(JDA jda) {
+    public PluginJam() {
         this.spreadsheetManager = new SpreadsheetManager();
         spreadsheetManager.load();
 
-        this.entries = spreadsheetManager.getEntries(jda);
+        this.entries = spreadsheetManager.getEntries();
 
         this.stage = new Stage();
         this.currentEntryVotes = new HashMap<>();
@@ -75,6 +75,7 @@ public class PluginJam {
                 .addField(new Field("Entries", sb.toString(), false))
                 .addField(new Field("Progress", generateStageString(), false))
                 .addField(new Field("How to?", "Execute `-next` to move to the next stage (review -> vote categories, or to next entry).", false))
+                .addField(new Field("Make a mistake?", "Execute `-skipto <number>` and you can skip to a different entry.", false))
                 .addField(new Field("Announce", "Want to announce that we've begun? Execute `-announcestart` and we'll send an embed to your announcement channel.", false))
                 .send(initiationChannel).queue();
 
@@ -152,7 +153,7 @@ public class PluginJam {
 
             startVoting(guild, channel.getJDA());
         } else {
-            if (getCurrentEntryNumber() + 1 == entries.size()) {
+            if (getCurrentEntryNumber() + 1 == entries.size() && stage.getVoteCategory() == VoteCategory.AESTHETICS) {
                 end(channel);
             } else {
 
@@ -294,7 +295,6 @@ public class PluginJam {
         this.active = false;
 
         stage.setSection(null);
-        stage.setEntry(null);
         stage.setVoteCategory(null);
 
         this.currentEntryVotes.clear();
@@ -324,8 +324,8 @@ public class PluginJam {
                 .send(channel).queue();
     }
 
-    public void reloadEntries(JDA jda) {
-        this.entries = spreadsheetManager.getEntries(jda);
+    public void reloadEntries() {
+        this.entries = spreadsheetManager.getEntries();
     }
 
     public void addVotesToSpreadsheet(MessageChannel messageChannel) {

@@ -17,6 +17,12 @@ import java.util.List;
 
 public class SpreadsheetAuthorisation {
 
+/*
+
+    FILE SOURCED FROM https://developers.google.com/sheets/api/quickstart/java
+
+ */
+
     private static final String TOKENS_DIRECTORY_PATH = "tokens";
 
     private static final List<String> SCOPES = Collections.singletonList(SheetsScopes.SPREADSHEETS);

@@ -28,7 +28,7 @@ public class RefreshEntriesCommand implements Command {
 
     @Override
     public void execute(Member member, Message message, String[] args) {
-        pluginJam.reloadEntries(member.getJDA());
+        pluginJam.reloadEntries();
 
         new JamEmbed()
                 .withTitle("Refreshed entries")

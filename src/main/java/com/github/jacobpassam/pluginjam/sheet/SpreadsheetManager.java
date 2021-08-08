@@ -10,14 +10,12 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.model.ValueRange;
 import lombok.SneakyThrows;
-import net.dv8tion.jda.api.JDA;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 
 public class SpreadsheetManager {
@@ -25,7 +23,7 @@ public class SpreadsheetManager {
     public static final String APPLICATION_NAME = "Plugin Jam";
     public static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
 
-    private static final String spreadsheetId = "1UJcOFNIXkJyKwrAeM_AN025h0em1uz5dCAdCUjCAvLA";
+    private static final String spreadsheetId = "19aZ79O-XBfBIKIMdHHPOSQVwZ8gVcpNvzDckedHKT0o";
 
     private final SpreadsheetAuthorisation authorisation;
 
@@ -46,7 +44,7 @@ public class SpreadsheetManager {
     }
 
     @SneakyThrows
-    public List<JamEntry> getEntries(JDA jda) {
+    public List<JamEntry> getEntries() {
         final String RANGE = "Sheet1!C11:J55";
 
         ValueRange response = sheetsService.spreadsheets().values()
@@ -83,7 +81,7 @@ public class SpreadsheetManager {
 
         ForkJoinPool.commonPool().execute(() -> {
             try {
-                sheetsService.spreadsheets().values().update(spreadsheetId, "L" + row + ":Q" + row,
+                sheetsService.spreadsheets().values().update(spreadsheetId, "M" + row + ":R" + row,
                         new ValueRange()
                                 .setValues(Arrays.asList(Arrays.asList(creativity.getTotalAverage(), creativity.getSpecialistAverage(),
                                         functionality.getTotalAverage(), functionality.getSpecialistAverage(),
