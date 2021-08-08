@@ -8,35 +8,31 @@ import com.github.jacobpassam.pluginjam.permission.Permissions;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 
-public class NextCommand implements Command {
+public class RefreshEntriesCommand implements Command {
 
     private final PluginJam pluginJam;
 
-    public NextCommand(PluginJam pluginJam) {
+    public RefreshEntriesCommand(PluginJam pluginJam) {
         this.pluginJam = pluginJam;
     }
 
     @Override
     public String getName() {
-        return "next";
+        return "refreshentries";
     }
 
     @Override
     public Permission getPermission() {
-        return Permissions.MANAGE_JAM_POSITION;
+        return Permissions.REFRESH_ENTRIES;
     }
 
     @Override
     public void execute(Member member, Message message, String[] args) {
-        if (!pluginJam.isActive()) {
-            new JamEmbed()
-                    .withTitle("Plugin Jam is not active.")
-                    .withContent("You cannot move to the next stage before the Plugin Jam has been started.")
-                    .send(message.getChannel()).queue();
+        pluginJam.reloadEntries(member.getJDA());
 
-            return;
-        }
-
-        pluginJam.next(member.getGuild(), message.getChannel());
+        new JamEmbed()
+                .withTitle("Refreshed entries")
+                .withContent("You refreshed the entries from the spreadsheet.")
+                .send(message.getChannel()).queue();
     }
 }

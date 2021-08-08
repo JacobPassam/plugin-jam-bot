@@ -3,18 +3,24 @@ package com.github.jacobpassam.pluginjam.jam.vote;
 import com.github.jacobpassam.pluginjam.guild.JamGuilds;
 import com.github.jacobpassam.pluginjam.jam.PluginJam;
 import com.github.jacobpassam.pluginjam.jam.vote.UserVote;
+import com.github.jacobpassam.pluginjam.permission.PermissionManager;
+import com.github.jacobpassam.pluginjam.permission.Permissions;
 import com.github.jacobpassam.pluginjam.permission.UserRole;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.guild.react.GuildMessageReactionAddEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
 
 public class VoteListener extends ListenerAdapter {
 
     private final PluginJam pluginJam;
+    private PermissionManager permissionManager;
 
-    public VoteListener(PluginJam pluginJam) {
+    public VoteListener(PluginJam pluginJam, PermissionManager permissionManager) {
         this.pluginJam = pluginJam;
+        this.permissionManager = permissionManager;
     }
 
     @Override
@@ -48,5 +54,17 @@ public class VoteListener extends ListenerAdapter {
             pluginJam.recordVote(new UserVote(event.getMember().getIdLong(), d, event.getMember().getRoles().contains(specialist)));
         } catch (NumberFormatException ignored) { }
 
+    }
+
+    @Override
+    public void onGuildMessageReactionAdd(@NotNull GuildMessageReactionAddEvent event) {
+        if (event.getUser().isBot()) return;
+        if (event.getMessageIdLong() != pluginJam.getAwaitingReactionMessageId()) return;
+
+        if (!permissionManager.hasPermission(event.getMember(), Permissions.APPROVE_SPREADSHEET_ADD)) return;
+
+        if (!event.getReactionEmote().getName().equals("✅")) return;
+
+        pluginJam.addVotesToSpreadsheet(event.getChannel());
     }
 }

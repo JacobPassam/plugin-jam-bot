@@ -35,7 +35,8 @@ public class PluginJamBot {
 
         PermissionManager permissionManager = new PermissionManager();
         permissionManager.addPermission(UserRole.SPECIALIST, Permissions.PING_COMMAND);
-        permissionManager.addPermission(UserRole.SPECIALIST, Permissions.ADD_JAM_ENTRY);
+        permissionManager.addPermission(UserRole.SPECIALIST, Permissions.REFRESH_ENTRIES);
+        permissionManager.addPermission(UserRole.SPECIALIST, Permissions.MANAGE_JAM_POSITION);
         permissionManager.addPermission(UserRole.CREATOR, Permissions.START_STOP_JAM);
 
         CommandManager commandManager = new CommandManager(permissionManager);
@@ -44,15 +45,16 @@ public class PluginJamBot {
         commandManager.register(new PingCommand());
         commandManager.register(new DevModeCommand(permissionManager));
 
-        PluginJam pluginJam = new PluginJam();
+        PluginJam pluginJam = new PluginJam(jda);
         commandManager.register(new StartCommand(pluginJam));
-        commandManager.register(new AddEntryCommand(pluginJam));
+        commandManager.register(new RefreshEntriesCommand(pluginJam));
         commandManager.register(new AnnounceStartCommand(pluginJam));
         commandManager.register(new ProgressCommand(pluginJam));
         commandManager.register(new StopCommand(pluginJam));
         commandManager.register(new NextCommand(pluginJam));
+        commandManager.register(new SkipToCommand(pluginJam));
 
-        jda.addEventListener(new VoteListener(pluginJam));
+        jda.addEventListener(new VoteListener(pluginJam, permissionManager));
     }
 
 }

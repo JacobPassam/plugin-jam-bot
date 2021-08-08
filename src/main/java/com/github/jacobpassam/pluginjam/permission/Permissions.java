@@ -4,6 +4,7 @@ public enum Permissions implements Permission {
 
     PING_COMMAND,
     START_STOP_JAM,
-    ADD_JAM_ENTRY;
+    REFRESH_ENTRIES,
+    APPROVE_SPREADSHEET_ADD, MANAGE_JAM_POSITION;
 
 }

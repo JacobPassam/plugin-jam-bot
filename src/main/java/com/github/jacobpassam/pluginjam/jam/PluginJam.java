@@ -7,6 +7,7 @@ import com.github.jacobpassam.pluginjam.jam.vote.UserVote;
 import com.github.jacobpassam.pluginjam.jam.vote.VoteCategory;
 import com.github.jacobpassam.pluginjam.jam.vote.VoteTotals;
 import com.github.jacobpassam.pluginjam.permission.UserRole;
+import com.github.jacobpassam.pluginjam.sheet.SpreadsheetManager;
 import com.google.common.collect.Sets;
 import lombok.Getter;
 import net.dv8tion.jda.api.JDA;
@@ -17,26 +18,31 @@ import java.util.*;
 
 public class PluginJam {
 
-    // todo back/undo button?
+    private static final VoteCategory[] CATEGORY_ORDER = {VoteCategory.CREATIVITY, VoteCategory.FUNCTIONALITY, VoteCategory.AESTHETICS};
 
     @Getter
     private boolean active;
 
-    private final JamDataManager jamDataManager;
+    private final SpreadsheetManager spreadsheetManager;
 
-    private final List<JamEntry> entries;
+    private List<JamEntry> entries;
 
     private final Stage stage;
 
     private Message ourVotingChannelMessage;
 
+    @Getter
+    private long awaitingReactionMessageId;
+
+    private Map<VoteCategory, VoteTotals> voteTotals;
+
     private final Map<VoteCategory, Set<UserVote>> currentEntryVotes;
 
-    public PluginJam() {
-        this.jamDataManager = new JamDataManager();
-        jamDataManager.load();
+    public PluginJam(JDA jda) {
+        this.spreadsheetManager = new SpreadsheetManager();
+        spreadsheetManager.load();
 
-        this.entries = jamDataManager.getEntries();
+        this.entries = spreadsheetManager.getEntries(jda);
 
         this.stage = new Stage();
         this.currentEntryVotes = new HashMap<>();
@@ -151,17 +157,7 @@ public class PluginJam {
             } else {
 
                 if (stage.getVoteCategory() == VoteCategory.AESTHETICS) {
-                    new JamEmbed()
-                            .withTitle("Next entry!")
-                            .withContent("You have moved to the `Review` stage of entry **#" + (getCurrentEntryNumber() + 2) + "**. Voting for the last entry has ended.")
-                            .send(channel).queue();
-
-                    endVoting(channel);
-
-                    stage.setSection(Stage.Section.REVIEW);
-                    stage.setEntry(entries.get(getCurrentEntryNumber() + 1));
-
-                    startReview(guild, channel.getJDA());
+                    moveToEntry(channel, guild, entries.get(getCurrentEntryNumber() + 1), true);
 
                     return;
                 }
@@ -191,6 +187,21 @@ public class PluginJam {
 
         }
 
+    }
+
+    public void moveToEntry(MessageChannel channel, JamGuilds guild, JamEntry entry, boolean gracefullyEndVoting) {
+        new JamEmbed()
+                .withTitle("Next entry!")
+                .withContent("You have moved to the `Review` stage of entry **#" + (entries.indexOf(entry) + 1) + "**. Voting for the last entry has ended.")
+                .send(channel).queue();
+
+        if (gracefullyEndVoting) endVoting(channel);
+        currentEntryVotes.clear();
+
+        stage.setSection(Stage.Section.REVIEW);
+        stage.setEntry(entry);
+
+        startReview(guild, channel.getJDA());
     }
 
     public void startVoting(JamGuilds guild, JDA jda) {
@@ -246,18 +257,25 @@ public class PluginJam {
             totals.put(value, new VoteTotals(specialistAverage, average));
         }
 
-        currentEntryVotes.clear();
+        for (VoteCategory voteCategory : CATEGORY_ORDER) {
+            totals.putIfAbsent(voteCategory, new VoteTotals(0, 0));
+        }
+
+        this.voteTotals = totals;
 
         JamEmbed jamEmbed = new JamEmbed()
                 .withTitle("Vote Results | #" + (getCurrentEntryNumber() + 1))
-                .withContent("The vote results given are mean averages.");
+                .withContent("The vote results given are mean averages.\n\nReact with :white_check_mark: below to approve the addition of these votes to the spreadsheet.");
 
-        for (VoteCategory voteCategory : totals.keySet()) {
+        for (VoteCategory voteCategory : CATEGORY_ORDER) {
             jamEmbed.addField(new Field(voteCategory.getName() + " Score / 5 - Overall", String.valueOf(totals.get(voteCategory).getTotalAverage()), false));
             jamEmbed.addField(new Field(voteCategory.getName() + " Score / 5 - Specialist", String.valueOf(totals.get(voteCategory).getSpecialistAverage()), true));
         }
 
-        jamEmbed.send(output).queue();
+        Message message = jamEmbed.send(output).complete();
+        message.addReaction("✅").queue();
+
+        this.awaitingReactionMessageId = message.getIdLong();
     }
 
     public void end(MessageChannel channel) {
@@ -294,7 +312,6 @@ public class PluginJam {
             ourVotingChannelMessage = null;
         }
 
-
         this.active = false;
 
         stage.setSection(null);
@@ -307,12 +324,44 @@ public class PluginJam {
                 .send(channel).queue();
     }
 
-    public int addEntry(long id, String title) {
-        JamEntry entry = new JamEntry(id, title);
-        jamDataManager.addEntry(entry);
+    public void reloadEntries(JDA jda) {
+        this.entries = spreadsheetManager.getEntries(jda);
+    }
 
-        entries.add(entry);
+    public void addVotesToSpreadsheet(MessageChannel messageChannel) {
+        // i know it's bodgy don't shout at me :)
+        this.awaitingReactionMessageId = -1;
 
-        return entries.indexOf(entry);
+        int ourIndex = getCurrentEntryNumber() - (active ? 1 : 0);
+
+        spreadsheetManager.addVotes(ourIndex, voteTotals);
+
+        new JamEmbed()
+                .withTitle("Added votes")
+                .withContent("Votes for entry **#" + (ourIndex + 1) + "** have been added to the spreadsheet.")
+                .send(messageChannel).queue();
+    }
+
+    public void skipTo(int i, Guild jdaGuild, MessageChannel channel) {
+        if (i > entries.size() || i < 1) {
+            new JamEmbed()
+                    .withTitle("Incorrect usage")
+                    .withContent("That is not a valid entry number. Please double-check the spreadsheet or execute `-refreshentries`.")
+                    .send(channel).queue();
+
+            return;
+        }
+
+        if (this.ourVotingChannelMessage != null) {
+            ourVotingChannelMessage.delete().queue();
+            ourVotingChannelMessage = null;
+        }
+
+        JamGuilds guild = JamGuilds.MAIN;
+        if (jdaGuild.getIdLong() == JamGuilds.TEST.getId()) guild = JamGuilds.TEST;
+
+        this.awaitingReactionMessageId = -1;
+
+        moveToEntry(channel, guild, entries.get(i-1), false);
     }
 }

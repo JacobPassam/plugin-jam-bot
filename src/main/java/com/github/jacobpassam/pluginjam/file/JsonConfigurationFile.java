@@ -12,7 +12,7 @@ import java.io.*;
 
 public class JsonConfigurationFile {
 
-    private static final String FILE_DIRECTORY = "data";
+    public static final String FILE_DIRECTORY = "data";
 
     public static final Gson GSON = new GsonBuilder().create();
 
