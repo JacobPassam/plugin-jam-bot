@@ -1,0 +1,41 @@
+plugins {
+    id 'java'
+    id 'application'
+    id "com.github.johnrengelman.shadow" version "6.1.0"
+}
+
+group 'com.github.jacobpassam'
+version '0.0.1'
+
+repositories {
+    mavenCentral()
+
+    maven {
+        name 'm2-dv8tion'
+        url 'https://m2.dv8tion.net/releases'
+    }
+}
+
+application {
+    mainClassName = "com.github.jacobpassam.pluginjam.PluginJamBot"
+}
+
+dependencies {
+    compileOnly 'org.projectlombok:lombok:1.18.18'
+    annotationProcessor 'org.projectlombok:lombok:1.18.18'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
+
+    implementation 'net.dv8tion:JDA:4.3.0_307'
+    implementation 'com.google.code.gson:gson:2.8.7'
+    implementation 'com.google.guava:guava:30.1.1-jre'
+
+    implementation "org.slf4j:slf4j-simple:2.0.0-alpha2"
+
+    implementation 'commons-io:commons-io:2.11.0'
+}
+
+test {
+    useJUnitPlatform()
+}
